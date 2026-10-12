@@ -89,8 +89,8 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
     restart: unless-stopped
     environment:
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m -XX:UseSVE=0
-      - CLI_JAVA_OPTS=-XX:UseSVE=0
+      # -XX:UseSVE=0 is needed only on ARM hosts such as Apple Silicon. Intel and AMD JVMs reject it.
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - node.name=elasticsearch
       - cluster.name=es-argilla-local
       - discovery.type=single-node
