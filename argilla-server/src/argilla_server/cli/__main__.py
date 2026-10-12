@@ -16,6 +16,7 @@ import typer
 
 from .database import app as database_app
 from .search_engine import app as search_engine_app
+from .sql_review import app as sql_review_app
 from .start import start
 from .worker import worker
 
@@ -24,6 +25,7 @@ app = typer.Typer(help="Commands for Argilla server management", no_args_is_help
 
 app.add_typer(database_app, name="database")
 app.add_typer(search_engine_app, name="search-engine")
+app.add_typer(sql_review_app, name="sql-review")
 app.command(name="worker", help="Starts rq workers")(worker)
 app.command(name="start", help="Starts the Argilla server")(start)
 

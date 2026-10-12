@@ -1,0 +1,283 @@
+<style>
+  /* Argilla copies its page styles into this frame; undo the full-height body */
+  html, body { min-height: 0 !important; max-height: none !important; height: auto !important; margin: 0; overflow: hidden; }
+
+  .qr {
+    --qr-fg: var(--fg-primary, rgba(0,0,0,.87));
+    --qr-fg-2: var(--fg-secondary, rgba(0,0,0,.54));
+    --qr-fg-3: var(--fg-tertiary, rgba(0,0,0,.37));
+    --qr-line: var(--bg-opacity-10, rgba(0,0,0,.1));
+    --qr-soft: var(--bg-opacity-4, rgba(0,0,0,.04));
+    --qr-softer: var(--bg-opacity-2, rgba(0,0,0,.02));
+    --qr-panel: var(--bg-accent-grey-2, #fff);
+    --qr-action: var(--bg-action, #405ec9);
+    --qr-action-hover: var(--bg-action-accent, #3b54b0);
+    --qr-ok: var(--fg-status-draft, #006627);
+    --qr-err-bg: var(--bg-banner-error, #ffd8d6);
+    --qr-err-fg: var(--color-brand, #8e0801);
+    font: 13px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--qr-fg);
+    border: 1px solid var(--qr-line);
+    border-radius: 8px;
+    background: var(--qr-panel);
+    overflow: hidden;
+  }
+  .qr * { box-sizing: border-box; }
+
+  .qr-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--qr-line); background: var(--qr-softer); }
+  .qr-title { font-weight: 600; font-size: 12px; letter-spacing: .02em; text-transform: uppercase; color: var(--qr-fg-2); }
+  .qr-badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--qr-soft); color: var(--qr-fg-2); }
+  .qr-badge[hidden] { display: none; }
+  .qr-spacer { flex: 1; }
+  .qr-hint { font-size: 11px; color: var(--qr-fg-3); }
+
+  .qr-btn { font: inherit; font-size: 12px; font-weight: 500; border-radius: 6px; padding: 5px 12px; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px; }
+  .qr-btn:disabled { opacity: .55; cursor: default; }
+  .qr-btn-ghost { background: transparent; color: var(--qr-fg-2); border-color: var(--qr-line); }
+  .qr-btn-ghost:hover:not(:disabled) { background: var(--qr-soft); color: var(--qr-fg); }
+  .qr-btn-primary { background: var(--qr-action); color: #fff; }
+  .qr-btn-primary:hover:not(:disabled) { background: var(--qr-action-hover); }
+  .qr-btn svg { width: 12px; height: 12px; fill: currentColor; }
+
+  .qr-editor {
+    display: block; width: 100%; min-height: 120px; resize: none; overflow: hidden;
+    border: 0; outline: 0; margin: 0; padding: 12px 14px;
+    font: 12.5px/1.55 "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--qr-fg); background: transparent; tab-size: 4; white-space: pre;
+    overflow-x: auto;
+  }
+  .qr-editor:focus { background: var(--qr-softer); }
+
+  .qr-status { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-top: 1px solid var(--qr-line); font-size: 12px; color: var(--qr-fg-2); min-height: 33px; }
+  .qr-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--qr-fg-3); flex: none; }
+  .qr-status.ok .qr-dot { background: var(--qr-ok); }
+  .qr-status.err .qr-dot { background: var(--qr-err-fg); }
+  .qr-status.warn .qr-dot { background: var(--fg-status-pending, #bd720a); }
+  .qr-status.warn #qr-msg { color: var(--fg-status-pending, #bd720a); font-weight: 500; }
+  .qr-status.run .qr-dot { background: var(--qr-action); animation: qr-pulse 1s ease-in-out infinite; }
+  @keyframes qr-pulse { 50% { opacity: .25; } }
+  .qr-status .qr-btn { padding: 2px 8px; font-size: 11px; }
+
+  .qr-error { margin: 0 12px 12px; padding: 10px 12px; border-radius: 6px; background: var(--qr-err-bg); color: var(--qr-err-fg); font: 12px/1.5 "Roboto Mono", ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
+  .qr-error[hidden], .qr-results[hidden] { display: none; }
+
+  .qr-results { max-height: 380px; overflow: auto; border-top: 1px solid var(--qr-line); }
+  .qr-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: 12px; }
+  .qr-table th { position: sticky; top: 0; z-index: 1; background: var(--qr-panel); text-align: left; font-weight: 600; padding: 7px 12px 6px; border-bottom: 1px solid var(--qr-line); white-space: nowrap; box-shadow: inset 0 -1px 0 var(--qr-line); }
+  .qr-table th small { display: block; font-weight: 400; font-size: 10px; color: var(--qr-fg-3); text-transform: lowercase; }
+  .qr-table td { padding: 5px 12px; border-bottom: 1px solid var(--qr-soft); white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; font-family: "Roboto Mono", ui-monospace, monospace; }
+  .qr-table tbody tr:nth-child(even) td { background: var(--qr-softer); }
+  .qr-table tbody tr:hover td { background: var(--qr-soft); }
+  .qr-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .qr-table td.null { color: var(--qr-fg-3); font-style: italic; }
+  .qr-table .rn { color: var(--qr-fg-3); text-align: right; width: 1%; padding-right: 8px; }
+  .qr-view { margin: 0; padding: 12px 14px; font: 12.5px/1.55 "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; overflow-x: auto; color: var(--qr-fg); tab-size: 4; }
+  .qr-view .k { color: var(--fg-cuaternary, #405ec9); font-weight: 600; }
+  .qr-view .s { color: var(--fg-chat-1, #488d81); }
+  .qr-view .n { color: var(--fg-chat-2, #af6daf); }
+  .qr-view .c { color: var(--qr-fg-3); font-style: italic; }
+  .qr-intro { font-size: 11px; color: var(--qr-fg-3); }
+
+  .qr.is-view .edit-only, .qr.is-edit .view-only { display: none !important; }
+
+  .qr-empty { padding: 18px 12px; color: var(--qr-fg-3); text-align: center; font-size: 12px; }
+</style>
+
+<div class="qr is-view" id="qr">
+  <div class="qr-bar">
+    <span class="qr-title">QuestDB SQL</span>
+    <span class="qr-badge edit-only" id="qr-edited" hidden>edited</span>
+    <span class="qr-spacer"></span>
+    <span class="qr-intro view-only">Run it against QuestDB before you rate it</span>
+    <button class="qr-btn qr-btn-primary view-only" id="qr-try">
+      <svg viewBox="0 0 12 12"><path d="M3 1.5v9l7.5-4.5z"/></svg><span>Try it out</span>
+    </button>
+    <span class="qr-hint edit-only" id="qr-hint">Ctrl + Enter to run</span>
+    <button class="qr-btn qr-btn-ghost edit-only" id="qr-reset" disabled>Reset</button>
+    <button class="qr-btn qr-btn-ghost edit-only" id="qr-close">Close</button>
+    <button class="qr-btn qr-btn-primary edit-only" id="qr-run">
+      <svg viewBox="0 0 12 12"><path d="M3 1.5v9l7.5-4.5z"/></svg><span>Run query</span>
+    </button>
+  </div>
+  <pre class="qr-view view-only" id="qr-view"></pre>
+  <textarea class="qr-editor edit-only" id="qr-sql" spellcheck="false" autocomplete="off"></textarea>
+  <div class="qr-status edit-only" id="qr-status">
+    <span class="qr-dot"></span><span id="qr-msg">Not run yet</span>
+    <span class="qr-spacer"></span>
+    <button class="qr-btn qr-btn-ghost" id="qr-copy" hidden>Copy CSV</button>
+  </div>
+  <div class="qr-error edit-only" id="qr-error" hidden></div>
+  <div class="qr-results edit-only" id="qr-out" hidden></div>
+</div>
+
+<script>
+  // Argilla runs the query on QuestDB (ARGILLA_QUESTDB_URL), so the panel only talks to Argilla itself
+  const EXEC_PATH = "/api/v1/questdb/exec";
+  const MAX_ROWS = 200;
+  // A run of the original query that takes longer than this is flagged as a performance issue.
+  // "argilla_server sql-review setup --slow-query-seconds" sets this value.
+  const SLOW_QUERY_SECONDS = 3;
+
+  // This frame has the same origin as Argilla, so it can read the sign-in token that the app keeps
+  const authToken = () => { try { return localStorage.getItem("auth._token.local") || ""; } catch (e) { return ""; } };
+  const appOrigin = () => { try { return window.parent.location.origin; } catch (e) { return window.location.origin; } };
+  const NUMERIC = /^(BYTE|SHORT|INT|LONG|FLOAT|DOUBLE|DECIMAL|LONG256)/i;
+
+  const fields = (typeof record !== "undefined" && record.fields) || {};
+  const raw = fields.sql && typeof fields.sql === "object" ? fields.sql.sql : fields.sql;
+  const original = String(raw || "").replace(/^\s*```[a-zA-Z]*\n?/, "").replace(/\n?```\s*$/, "");
+
+  const $ = (id) => document.getElementById(id);
+  const box = $("qr-sql"), runBtn = $("qr-run"), resetBtn = $("qr-reset"), copyBtn = $("qr-copy");
+  const statusEl = $("qr-status"), msg = $("qr-msg"), errEl = $("qr-error"), out = $("qr-out");
+  let lastResult = null;
+
+  if (/Mac/i.test(navigator.platform)) $("qr-hint").textContent = "⌘ + Enter to run";
+
+  // Argilla sizes this frame once at load, so grow it whenever the content changes
+  const resize = () => {
+    if (window.frameElement) window.frameElement.style.height = document.documentElement.scrollHeight + "px";
+  };
+  const fitEditor = () => { box.style.height = "auto"; box.style.height = box.scrollHeight + 2 + "px"; resize(); };
+
+  const syncEdited = () => {
+    const edited = box.value !== original;
+    $("qr-edited").hidden = !edited;
+    resetBtn.disabled = !edited;
+  };
+
+  const setStatus = (kind, text) => { statusEl.className = "qr-status " + kind; msg.textContent = text; };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const fmt = (v) => (typeof v === "object" ? JSON.stringify(v) : String(v));
+
+  const renderTable = (columns, rows) => {
+    if (!columns.length) { out.innerHTML = '<div class="qr-empty">Statement ran. No result set.</div>'; return; }
+    if (!rows.length) { out.innerHTML = '<div class="qr-empty">Query returned 0 rows.</div>'; return; }
+    const isNum = columns.map((c) => NUMERIC.test(c.type || ""));
+    const head = '<th class="rn">#</th>' + columns.map((c) => "<th>" + esc(c.name) + "<small>" + esc(c.type || "") + "</small></th>").join("");
+    const body = rows.map((r, i) => '<tr><td class="rn">' + (i + 1) + "</td>" + r.map((v, j) =>
+      v === null ? '<td class="null">null</td>'
+        : '<td class="' + (isNum[j] ? "num" : "") + '" title="' + esc(fmt(v)) + '">' + esc(fmt(v)) + "</td>").join("") + "</tr>").join("");
+    out.innerHTML = '<table class="qr-table"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table>";
+  };
+
+  const KEYWORDS = new Set(("select from where group by order having limit with as and or not in is null on join left right inner outer full cross " +
+    "union all distinct case when then else end asc desc between like ilike sample fill align to calendar latest partition over " +
+    "count sum avg min max first last cast insert into values create table timestamp interval true false exists").split(" "));
+  const highlight = (sql) => sql.replace(/(--[^\n]*)|('(?:[^']|'')*')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|([&<>"])/g,
+    (m, c, str, num, word, ch) =>
+      c ? '<span class="c">' + esc(c) + "</span>" :
+      str ? '<span class="s">' + esc(str) + "</span>" :
+      num ? '<span class="n">' + num + "</span>" :
+      word ? (KEYWORDS.has(word.toLowerCase()) ? '<span class="k">' + word + "</span>" : word) : esc(ch));
+
+  const root = $("qr");
+  const setMode = (mode) => {
+    root.className = "qr is-" + mode;
+    if (mode === "edit") { fitEditor(); box.focus(); }
+    resize();
+  };
+
+  // Argilla's answer form lives in the parent page, which has the same origin as this frame
+  const NOTE_PREFIX = "[auto] Query took ";
+  const flagSlowQuery = (seconds) => {
+    let doc;
+    try { doc = window.parent.document; } catch (e) { return "the answer form is not reachable"; }
+    const missing = [];
+
+    const errorTypes = doc.querySelector('[aria-label="Question: error_types"]');
+    const label = errorTypes && [...errorTypes.querySelectorAll("label.label-text")]
+      .find((l) => (l.getAttribute("title") || l.textContent).trim() === "Performance issue");
+    if (label) { if (!label.classList.contains("label-active")) label.click(); }
+    else missing.push("Error types");
+
+    const notes = doc.querySelector('[aria-label="Question: notes"] [contenteditable]');
+    if (notes) {
+      const line = NOTE_PREFIX + seconds.toFixed(1) + " s in QuestDB (limit " + SLOW_QUERY_SECONDS + " s).";
+      const kept = notes.innerText.split("\n").filter((l) => l.trim() && !l.startsWith(NOTE_PREFIX));
+      notes.innerText = kept.concat(line).join("\n");
+      notes.dispatchEvent(new Event("input", { bubbles: true }));
+    } else missing.push("Notes");
+
+    return missing.length ? "could not find " + missing.join(" and ") : "";
+  };
+
+  const run = async () => {
+    errEl.hidden = true; out.hidden = true; copyBtn.hidden = true; lastResult = null;
+    setStatus("run", "Running…");
+    runBtn.disabled = true;
+    const t0 = performance.now();
+    try {
+      const url = appOrigin() + EXEC_PATH + "?limit=" + MAX_ROWS + "&query=" + encodeURIComponent(box.value);
+      const res = await fetch(url, { headers: { Authorization: authToken() } });
+      if (res.status === 401) {
+        setStatus("err", "Your session ended. Sign in to Argilla again.");
+        return;
+      }
+      const data = await res.json();
+      const ms = Math.round(performance.now() - t0);
+      if (data.error) {
+        setStatus("err", "Query failed after " + ms + " ms");
+        errEl.textContent = data.error + (data.position !== undefined ? "\n(at character " + data.position + ")" : "");
+        errEl.hidden = false;
+        if (data.position !== undefined) { box.focus(); box.setSelectionRange(data.position, data.position + 1); }
+        return;
+      }
+      const columns = data.columns || [], rows = data.dataset || [];
+      const total = data.count ?? rows.length;
+      // Prefer QuestDB's own timing (nanoseconds) over the browser round trip, which includes the network
+      const t = data.timings;
+      const queryMs = t ? Math.round(((t.compiler || 0) + (t.execute || 0) + (t.count || 0)) / 1e6) : ms;
+      const summary = total + (total === 1 ? " row" : " rows") + " · " + queryMs + " ms" +
+        (rows.length >= MAX_ROWS ? " · showing first " + MAX_ROWS : "");
+      if (queryMs > SLOW_QUERY_SECONDS * 1000) {
+        if (box.value === original) {
+          const problem = flagSlowQuery(queryMs / 1000);
+          setStatus("warn", summary + " · slow, " + (problem ? "not flagged: " + problem : "flagged as Performance issue and noted"));
+        } else {
+          setStatus("warn", summary + " · slow (edited query, not flagged)");
+        }
+      } else {
+        setStatus("ok", summary);
+      }
+      renderTable(columns, rows);
+      out.hidden = false;
+      if (columns.length && rows.length) { lastResult = { columns, rows }; copyBtn.hidden = false; copyBtn.textContent = "Copy CSV"; }
+    } catch (e) {
+      setStatus("err", "Could not run the query");
+      errEl.textContent = e.message;
+      errEl.hidden = false;
+    } finally {
+      runBtn.disabled = false;
+    }
+  };
+
+  copyBtn.onclick = async () => {
+    if (!lastResult) return;
+    const cell = (v) => { const s = v === null ? "" : fmt(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const csv = [lastResult.columns.map((c) => cell(c.name)).join(",")]
+      .concat(lastResult.rows.map((r) => r.map(cell).join(","))).join("\n");
+    try { await navigator.clipboard.writeText(csv); copyBtn.textContent = "Copied"; }
+    catch { copyBtn.textContent = "Copy failed"; }
+    setTimeout(() => { copyBtn.textContent = "Copy CSV"; }, 1500);
+  };
+
+  box.addEventListener("input", () => { syncEdited(); fitEditor(); });
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); if (!runBtn.disabled) run().finally(resize); }
+    else if (e.key === "Tab") { e.preventDefault(); box.setRangeText("    ", box.selectionStart, box.selectionEnd, "end"); syncEdited(); }
+  });
+  // Stop Argilla's own keyboard shortcuts from firing while typing SQL
+  ["keydown", "keyup", "keypress"].forEach((t) => box.addEventListener(t, (e) => e.stopPropagation()));
+
+  $("qr-try").onclick = () => setMode("edit");
+  $("qr-close").onclick = () => setMode("view");
+  runBtn.onclick = () => run().finally(resize);
+  resetBtn.onclick = () => { box.value = original; syncEdited(); fitEditor(); };
+
+  $("qr-view").innerHTML = highlight(original) || '<span class="c">No SQL in this record</span>';
+  box.value = original;
+  syncEdited();
+  resize();
+  new ResizeObserver(resize).observe(document.body);
+</script>

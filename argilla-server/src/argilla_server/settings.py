@@ -137,6 +137,20 @@ class Settings(BaseSettings):
         description="Max number of label options for questions of type `span`",
     )
 
+    # QuestDB settings for the SQL review panel
+    questdb_url: Optional[str] = Field(
+        default=None,
+        description="QuestDB HTTP URL that /api/v1/questdb/exec sends queries to. If unset, the endpoint is disabled",
+    )
+    questdb_timeout: float = Field(
+        default=60.0,
+        description="Seconds to wait for a QuestDB query",
+    )
+    questdb_max_rows: int = Field(
+        default=1000,
+        description="Max number of rows that /api/v1/questdb/exec returns",
+    )
+
     # Hugging Face settings
     show_huggingface_space_persistent_storage_warning: bool = Field(
         default=True,

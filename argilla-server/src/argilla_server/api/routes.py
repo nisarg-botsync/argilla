@@ -64,6 +64,7 @@ from argilla_server.api.handlers.v1 import (
 )
 from argilla_server.api.handlers.v1 import webhooks as webhooks_v1
 from argilla_server.api.handlers.v1 import jobs as jobs_v1
+from argilla_server.api.handlers.v1 import questdb as questdb_v1
 from argilla_server.errors.base_errors import __ALL__
 from argilla_server.errors.error_handler import APIErrorHandler
 
@@ -98,6 +99,7 @@ def create_api_v1():
         jobs_v1.router,
         oauth2_v1.router,
         settings_v1.router,
+        questdb_v1.router,
     ]:
         api_v1.include_router(router)
 

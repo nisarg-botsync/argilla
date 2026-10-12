@@ -1,0 +1,121 @@
+# Argilla 2.8.0 with the SQL review panel. Based on the official deployment in
+# examples/deployments/docker/docker-compose.yaml.
+#
+# To replace an existing deployment, keep its project name so that its volumes and
+# data stay attached (for example: name: agrilla).
+name: argilla
+
+x-common-variables: &common-variables
+  ARGILLA_HOME_PATH: /var/lib/argilla
+  ARGILLA_ELASTICSEARCH: http://elasticsearch:9200
+  ARGILLA_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/argilla
+  ARGILLA_REDIS_URL: redis://redis:6379/0
+
+x-login-variables: &login-variables
+  USERNAME: ${ARGILLA_USERNAME:-argilla}
+  PASSWORD: ${ARGILLA_PASSWORD:-12345678}
+  API_KEY: ${ARGILLA_API_KEY:-argilla.apikey}
+  WORKSPACE: ${ARGILLA_WORKSPACE:-default}
+
+services:
+  argilla:
+    image: botsync/argilla-custom:1.0.0
+    restart: unless-stopped
+    ports:
+      - "6900:6900"
+    environment:
+      <<: [*common-variables, *login-variables]
+      # QuestDB HTTP address, as seen from this container. The SQL review panel runs queries through Argilla.
+      ARGILLA_QUESTDB_URL: ${QUESTDB_URL:?Set QUESTDB_URL in .env, for example http://questdb-host:9000}
+      ARGILLA_QUESTDB_TIMEOUT: ${QUESTDB_TIMEOUT:-60}
+      # Uncomment the following line to reindex Argilla datasets into the search engine when starting up
+      # REINDEX_DATASETS: 1
+    extra_hosts:
+      # Lets QUESTDB_URL point at a QuestDB on this host
+      - "host.docker.internal:host-gateway"
+    networks:
+      - argilla
+    volumes:
+      # ARGILLA_HOME_PATH is used to define where Argilla will save it's application data.
+      # If you change ARGILLA_HOME_PATH value please copy that same value to argilladata volume too.
+      - argilladata:/var/lib/argilla
+    depends_on:
+      - postgres
+      - elasticsearch
+      - redis
+
+  worker:
+    image: botsync/argilla-custom:1.0.0
+    restart: unless-stopped
+    environment:
+      <<: *common-variables
+      BACKGROUND_NUM_WORKERS: 2
+    networks:
+      - argilla
+    depends_on:
+      - postgres
+      - elasticsearch
+      - redis
+    command: sh -c 'python -m argilla_server worker --num-workers $${BACKGROUND_NUM_WORKERS}'
+
+  # Runs once per "docker compose up": puts the SQL review panel into every dataset
+  # with a field named "sql" and applies SLOW_QUERY_SECONDS, then exits
+  sql-review-setup:
+    image: botsync/argilla-custom:1.0.0
+    restart: "no"
+    command: python -m argilla_server sql-review setup
+    environment:
+      <<: *login-variables
+      ARGILLA_URL: http://argilla:6900
+      SLOW_QUERY_SECONDS: ${SLOW_QUERY_SECONDS:-3}
+    networks:
+      - argilla
+    depends_on:
+      - argilla
+
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: argilla
+    networks:
+      - argilla
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    restart: unless-stopped
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m -XX:UseSVE=0
+      - CLI_JAVA_OPTS=-XX:UseSVE=0
+      - node.name=elasticsearch
+      - cluster.name=es-argilla-local
+      - discovery.type=single-node
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - argilla
+    volumes:
+      - elasticdata:/usr/share/elasticsearch/data/
+
+  redis:
+    image: redis
+    restart: unless-stopped
+    networks:
+      - argilla
+
+networks:
+  argilla:
+    driver: bridge
+
+volumes:
+  argilladata:
+  elasticdata:
+  postgresdata:
